@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/cloudtesting/cmd"
 )
 
 func TestVersionHandler(t *testing.T) {
@@ -16,7 +18,7 @@ func TestVersionHandler(t *testing.T) {
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(versionHandler)
+	handler := http.HandlerFunc(cmd.VersionHandler)
 
 	// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
 	// directly and pass in our Request and ResponseRecorder.
@@ -29,7 +31,7 @@ func TestVersionHandler(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := version
+	expected := cmd.Version
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
