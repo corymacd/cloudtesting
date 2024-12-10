@@ -37,7 +37,7 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	// Register handlers
 	mux.HandleFunc("/healthz", healthzHandler)
-	mux.HandleFunc("/", VersionHandler)
+	mux.HandleFunc("/version", VersionHandler)
 
 	server := &http.Server{
 		Addr:    ":8080",
@@ -55,7 +55,8 @@ func runServer(cmd *cobra.Command, args []string) {
 		<-sig
 
 		// Shutdown signal with grace period of 30 seconds
-		shutdownCtx, _ := context.WithTimeout(serverCtx, 30*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(serverCtx, 30*time.Second)
+		defer cancel()
 
 		go func() {
 			<-shutdownCtx.Done()
@@ -72,14 +73,21 @@ func runServer(cmd *cobra.Command, args []string) {
 		serverStopCtx()
 	}()
 
-	// Run the server
+	// Add a root handler that returns 404 for undefined routes
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte("API Server"))
+	})
+
 	log.Printf("Server starting on :8080")
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 
-	// Wait for server context to be stopped
 	<-serverCtx.Done()
 }
 
