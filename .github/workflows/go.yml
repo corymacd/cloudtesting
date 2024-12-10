@@ -1,1 +1,48 @@
- 
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - run: go test -v ./...
+
+  build:
+    needs: test
+    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - run: go build -v -ldflags "-X github.com/cloudtesting/cmd.Version=${GITHUB_SHA::7}" ./...
+
+  goreleaser:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    - uses: goreleaser/goreleaser-action@v4
+      with:
+        distribution: goreleaser
+        version: latest
+        args: release --clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
