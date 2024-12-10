@@ -84,8 +84,10 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	log.Printf("Server starting on :8080")
 	err := server.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+ w.WriteHeader(http.StatusOK)
+ if _, err := w.Write([]byte("ok")); err != nil {
+     log.Printf("Error writing response: %v", err)
+ }
 	}
 
 	<-serverCtx.Done()
