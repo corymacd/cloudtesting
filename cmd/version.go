@@ -23,9 +23,15 @@ var versionCmd = &cobra.Command{
 
 		switch format {
 		case "json":
-			json.NewEncoder(cmd.OutOrStdout()).Encode(info)
+			if err := json.NewEncoder(cmd.OutOrStdout()).Encode(info); err != nil {
+				fmt.Fprintf(cmd.OutOrStderr(), "Error encoding JSON: %v\n", err)
+				return
+			}
 		case "xml":
-			xml.NewEncoder(cmd.OutOrStdout()).Encode(info)
+			if err := xml.NewEncoder(cmd.OutOrStdout()).Encode(info); err != nil {
+				fmt.Fprintf(cmd.OutOrStderr(), "Error encoding XML: %v\n", err)
+				return
+			}
 		default:
 			fmt.Fprintf(cmd.OutOrStdout(), "Version: %s\nGitCommit: %s\nBuildTime: %s\nBuildUser: %s\nGoVersion: %s\n",
 				info.Version, info.GitCommit, info.BuildTime, info.BuildUser, info.GoVersion)
