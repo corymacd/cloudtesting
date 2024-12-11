@@ -84,10 +84,13 @@ func makeVersionHandler() http.HandlerFunc {
 				http.Error(w, "Failed to encode XML response", http.StatusInternalServerError)
 				return
 			}
-		default:
-			w.Header().Set("Content-Type", "text/plain")
-			fmt.Fprintf(w, "Version: %s\nGitCommit: %s\nBuildTime: %s\nBuildUser: %s\nGoVersion: %s\n",
-				info.Version, info.GitCommit, info.BuildTime, info.BuildUser, info.GoVersion)
+  default:
+      w.Header().Set("Content-Type", "text/plain")
+      if _, err := fmt.Fprintf(w, "Version: %s\nGitCommit: %s\nBuildTime: %s\nBuildUser: %s\nGoVersion: %s\n",
+          info.Version, info.GitCommit, info.BuildTime, info.BuildUser, info.GoVersion); err != nil {
+          http.Error(w, "Failed to write response", http.StatusInternalServerError)
+          return
+      }
 		}
 	}
 }
