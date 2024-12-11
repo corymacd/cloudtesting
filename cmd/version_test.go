@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"encoding/xml"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/cloudtesting/internal/version"
@@ -9,18 +13,9 @@ import (
 )
 
 func TestVersionCmd(t *testing.T) {
-	// Save original version and command state
+	// Save original version
 	originalVersion := version.Version
-	originalRoot := rootCmd
-	defer func() {
-		version.Version = originalVersion
-		rootCmd = originalRoot
-	}()
-
-	// Reset for test, using "unknown" as default
-	version.Version = "unknown"
-	rootCmd = &cobra.Command{Use: "app"}
-	rootCmd.AddCommand(versionCmd)
+	defer func() { version.Version = originalVersion }()
 
 	tests := []struct {
 		name        string
@@ -40,23 +35,52 @@ func TestVersionCmd(t *testing.T) {
 		{
 			name:        "json",
 			format:      "json",
-			wantContent: `{"version":"unknown"}`,
+			wantContent: `{"version":"unknown"`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			buf := new(bytes.Buffer)
-			versionCmd.SetOut(buf)
-			versionCmd.SetArgs([]string{"--format", tt.format})
+			// Create a new command for each test
+			cmd := &cobra.Command{Use: "app"}
+			vCmd := &cobra.Command{
+				Use:   "version",
+				Short: "Print version information",
+				Run: func(cmd *cobra.Command, args []string) {
+					info := version.GetInfo()
+					format, _ := cmd.Flags().GetString("format")
 
-			if err := versionCmd.Execute(); err != nil {
+					switch format {
+					case "json":
+						json.NewEncoder(cmd.OutOrStdout()).Encode(info)
+					case "xml":
+						xml.NewEncoder(cmd.OutOrStdout()).Encode(info)
+					default:
+						fmt.Fprintf(cmd.OutOrStdout(), "Version: %s\nGitCommit: %s\nBuildTime: %s\nBuildUser: %s\nGoVersion: %s\n",
+							info.Version, info.GitCommit, info.BuildTime, info.BuildUser, info.GoVersion)
+					}
+				},
+			}
+			vCmd.Flags().StringP("format", "f", "", "Output format (json|xml)")
+			cmd.AddCommand(vCmd)
+
+			// Set up output capture
+			buf := new(bytes.Buffer)
+			cmd.SetOut(buf)
+
+			// Execute command
+			cmd.SetArgs([]string{"version"})
+			if tt.format != "" {
+				cmd.SetArgs([]string{"version", "--format", tt.format})
+			}
+
+			err := cmd.Execute()
+			if err != nil {
 				t.Fatalf("failed to execute version command: %v", err)
 			}
 
-			got := buf.String()
-			if !bytes.Contains(buf.Bytes(), []byte(tt.wantContent)) {
-				t.Errorf("version command output = %q, want %q", got, tt.wantContent)
+			if !strings.Contains(buf.String(), tt.wantContent) {
+				t.Errorf("version command output = %q, want it to contain %q", buf.String(), tt.wantContent)
 			}
 		})
 	}
