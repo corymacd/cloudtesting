@@ -61,7 +61,9 @@ func (s *Server) Run(ctx context.Context) error {
 
 func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	if _, err := w.Write([]byte("ok")); err != nil {
+		log.Printf("Error writing healthz response: %v", err)
+	}
 }
 
 func makeVersionHandler() http.HandlerFunc {
@@ -71,10 +73,16 @@ func makeVersionHandler() http.HandlerFunc {
 		switch r.Header.Get("Accept") {
 		case "application/json":
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(info)
+			if err := json.NewEncoder(w).Encode(info); err != nil {
+				http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
+				return
+			}
 		case "application/xml":
 			w.Header().Set("Content-Type", "application/xml")
-			xml.NewEncoder(w).Encode(info)
+			if err := xml.NewEncoder(w).Encode(info); err != nil {
+				http.Error(w, "Failed to encode XML response", http.StatusInternalServerError)
+				return
+			}
 		default:
 			w.Header().Set("Content-Type", "text/plain")
 			fmt.Fprintf(w, "Version: %s\nGitCommit: %s\nBuildTime: %s\nBuildUser: %s\nGoVersion: %s\n",
@@ -88,5 +96,8 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Write([]byte("API Server"))
+	if _, err := w.Write([]byte("API Server")); err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
 }
