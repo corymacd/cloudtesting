@@ -48,7 +48,13 @@ jobs:
       with:
         go-version: '1.21'
         cache: true
-    - run: go build -v -ldflags "-X github.com/cloudtesting/internal/version.Version=${GITHUB_SHA::7}" ./...
+    - run: |
+        go build -v -ldflags "
+          -X github.com/cloudtesting/cmd.version=${GITHUB_SHA::7}
+          -X github.com/cloudtesting/cmd.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          -X github.com/cloudtesting/cmd.gitCommit=${GITHUB_SHA}
+          -X github.com/cloudtesting/cmd.goVersion=$(go version | cut -d' ' -f3)
+        " ./...
 
   goreleaser:
     needs: [test, lint]

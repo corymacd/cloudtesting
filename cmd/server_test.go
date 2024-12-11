@@ -13,67 +13,67 @@ import (
 )
 
 func TestHealthzHandler(t *testing.T) {
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/healthz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create a ResponseRecorder to record the response
+	req := httptest.NewRequest("GET", "/healthz", nil)
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.HealthzHandler)
 
-	// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
-	// directly and pass in our Request and ResponseRecorder
-	handler.ServeHTTP(rr, req)
+	server.HealthzHandler(rr, req)
 
-	// Check the status code is what we expect
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	// Check the response body is what we expect
 	expected := "ok"
 	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
+		t.Errorf("handler returned unexpected body: got %q want %q",
 			rr.Body.String(), expected)
 	}
 }
 
 func TestVersionHandler(t *testing.T) {
-	// Store the original version
-	originalVersion := Version
-	// Set a test version
-	Version = "1.0.0-test"
-	defer func() {
-		// Restore the original version after the test
-		Version = originalVersion
-	}()
-
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/version", nil)
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name        string
+		acceptType  string
+		wantStatus  int
+		wantContent string
+	}{
+		{
+			name:        "plain text",
+			acceptType:  "text/plain",
+			wantStatus:  http.StatusOK,
+			wantContent: "Version:",
+		},
+		{
+			name:        "json",
+			acceptType:  "application/json",
+			wantStatus:  http.StatusOK,
+			wantContent: `{"version":"dev"`,
+		},
+		{
+			name:        "xml",
+			acceptType:  "application/xml",
+			wantStatus:  http.StatusOK,
+			wantContent: `<VersionInfo><version>dev</version>`,
+		},
 	}
 
-	// Create a ResponseRecorder to record the response
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(VersionHandler)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/version", nil)
+			req.Header.Set("Accept", tt.acceptType)
+			rr := httptest.NewRecorder()
 
-	// Call the handler
-	handler.ServeHTTP(rr, req)
+			server.VersionHandler(rr, req)
 
-	// Check the status code
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+			if status := rr.Code; status != tt.wantStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v",
+					status, tt.wantStatus)
+			}
 
-	// Check the response body contains the version
-	expected := "Version: 1.0.0-test"
-	if !strings.Contains(rr.Body.String(), expected) {
-		t.Errorf("handler returned unexpected body: got %q want %q",
-			rr.Body.String(), expected)
+			if !strings.Contains(rr.Body.String(), tt.wantContent) {
+				t.Errorf("handler returned unexpected body: got %q, want it to contain %q",
+					rr.Body.String(), tt.wantContent)
+			}
+		})
 	}
 }
