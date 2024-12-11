@@ -26,7 +26,7 @@ jobs:
     - uses: actions/setup-go@v4
       with:
         go-version: '1.21'
-    - run: go build -v -ldflags "-X github.com/cloudtesting/cmd.Version=${GITHUB_SHA::7}" ./...
+    - run: go build -v -ldflags "-X github.com/cloudtesting/internal/version.Version=${GITHUB_SHA::7}" ./...
 
   goreleaser:
     needs: test

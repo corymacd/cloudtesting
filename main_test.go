@@ -1,40 +1,38 @@
+/*
+Copyright © 2022 Cory M. MacDonald <corymacd@netsrv.co>
+*/
 package main
 
 import (
+	"context"
 	"net/http"
-	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/cloudtesting/cmd"
+	"github.com/cloudtesting/internal/server"
 )
 
-func TestVersionHandler(t *testing.T) {
+func TestServerIntegration(t *testing.T) {
+	srv := server.New()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/version", nil)
+	// Start server
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			t.Errorf("server error: %v", err)
+		}
+	}()
+
+	// Wait for server to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Test endpoints
+	resp, err := http.Get("http://localhost:8080/healthz")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not make request: %v", err)
 	}
-
-	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(cmd.VersionHandler)
-
-	// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
-	// directly and pass in our Request and ResponseRecorder.
-	handler.ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("wrong status code: got %v want %v", resp.StatusCode, http.StatusOK)
 	}
-
-	// Check the response body is what we expect.
-	expected := cmd.Version
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
-
 }

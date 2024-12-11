@@ -1,3 +1,6 @@
+/*
+Copyright © 2022 Cory M. MacDonald <corymacd@netsrv.co>
+*/
 package cmd
 
 import (
@@ -5,6 +8,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/cloudtesting/internal/server"
 )
 
 func TestHealthzHandler(t *testing.T) {
@@ -16,7 +21,7 @@ func TestHealthzHandler(t *testing.T) {
 
 	// Create a ResponseRecorder to record the response
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(healthzHandler)
+	handler := http.HandlerFunc(server.HealthzHandler)
 
 	// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
 	// directly and pass in our Request and ResponseRecorder
@@ -68,7 +73,7 @@ func TestVersionHandler(t *testing.T) {
 	// Check the response body contains the version
 	expected := "Version: 1.0.0-test"
 	if !strings.Contains(rr.Body.String(), expected) {
-		t.Errorf("handler returned unexpected body: got %v want %v",
+		t.Errorf("handler returned unexpected body: got %q want %q",
 			rr.Body.String(), expected)
 	}
 }
