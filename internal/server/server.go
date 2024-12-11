@@ -9,8 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/cloudtesting/internal/version"
 )
 
 type Server struct {
@@ -61,7 +59,19 @@ func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func VersionHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Version: %s", version.Version)
+	version := "dev" // or however you get your version
+
+	switch r.Header.Get("Accept") {
+	case "application/json":
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"version":"%s"}`, version)
+	case "application/xml":
+		w.Header().Set("Content-Type", "application/xml")
+		fmt.Fprintf(w, `<VersionInfo><version>%s</version></VersionInfo>`, version)
+	default:
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "Version: %s", version)
+	}
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
