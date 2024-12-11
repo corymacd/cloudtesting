@@ -17,8 +17,8 @@ func TestVersionCmd(t *testing.T) {
 		rootCmd = originalRoot
 	}()
 
-	// Reset for test
-	version.Version = "1.0.0-test"
+	// Reset for test, using "unknown" as default
+	version.Version = "unknown"
 	rootCmd = &cobra.Command{Use: "app"}
 	rootCmd.AddCommand(versionCmd)
 
@@ -28,14 +28,19 @@ func TestVersionCmd(t *testing.T) {
 		wantContent string
 	}{
 		{
-			name:        "plain text",
+			name:        "default format",
 			format:      "",
-			wantContent: "Version: 1.0.0-test",
+			wantContent: "Version: unknown",
+		},
+		{
+			name:        "explicit plain text",
+			format:      "text",
+			wantContent: "Version: unknown",
 		},
 		{
 			name:        "json",
 			format:      "json",
-			wantContent: `{"version":"1.0.0-test"`,
+			wantContent: `{"version":"unknown"}`,
 		},
 	}
 
