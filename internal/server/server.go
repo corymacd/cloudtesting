@@ -73,10 +73,11 @@ func makeVersionHandler() http.HandlerFunc {
 		switch r.Header.Get("Accept") {
 		case "application/json":
 			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(info); err != nil {
-				http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
-				return
-			}
+   w.WriteHeader(http.StatusOK)
+   if err := json.NewEncoder(w).Encode(info); err != nil {
+       http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
+       return
+   }
 		case "application/xml":
 			w.Header().Set("Content-Type", "application/xml")
 			if err := xml.NewEncoder(w).Encode(info); err != nil {
