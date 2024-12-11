@@ -50,10 +50,11 @@ jobs:
         cache: true
     - run: |
         go build -v -ldflags "
-          -X github.com/cloudtesting/cmd.version=${GITHUB_SHA::7}
-          -X github.com/cloudtesting/cmd.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          -X github.com/cloudtesting/cmd.gitCommit=${GITHUB_SHA}
-          -X github.com/cloudtesting/cmd.goVersion=$(go version | cut -d' ' -f3)
+          -X github.com/cloudtesting/internal/version.Version=${GITHUB_SHA::7}
+          -X github.com/cloudtesting/internal/version.GitCommit=${GITHUB_SHA}
+          -X github.com/cloudtesting/internal/version.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          -X github.com/cloudtesting/internal/version.BuildUser=${GITHUB_ACTOR}
+          -X github.com/cloudtesting/internal/version.GoVersion=$(go version | cut -d' ' -f3)
         " ./...
 
   goreleaser:
@@ -74,4 +75,5 @@ jobs:
         version: latest
         args: release --clean
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        LDFLAGS: "-X github.com/cloudtesting/internal/version.BuildUser=${GITHUB_ACTOR} -X github.com/cloudtesting/internal/version.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" 

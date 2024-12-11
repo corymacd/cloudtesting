@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/cloudtesting/internal/server"
+	"github.com/cloudtesting/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +24,7 @@ func init() {
 }
 
 func runServer(cmd *cobra.Command, args []string) {
-	srv := server.New()
+	srv := server.New(version.Version)
 	if err := srv.Run(context.Background()); err != nil {
 		log.Fatal(err)
 	}

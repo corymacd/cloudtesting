@@ -13,7 +13,7 @@ import (
 )
 
 func TestServerIntegration(t *testing.T) {
-	srv := server.New()
+	srv := server.New("test-version")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

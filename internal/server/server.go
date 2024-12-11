@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,18 +11,21 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	ver "github.com/cloudtesting/internal/version"
 )
 
 type Server struct {
-	srv *http.Server
+	srv     *http.Server
+	version string
 }
 
-func New() *Server {
+func New(version string) *Server {
 	mux := http.NewServeMux()
 
 	// Register handlers
 	mux.HandleFunc("/healthz", HealthzHandler)
-	mux.HandleFunc("/version", VersionHandler)
+	mux.HandleFunc("/version", makeVersionHandler())
 	mux.HandleFunc("/", rootHandler)
 
 	return &Server{
@@ -28,6 +33,7 @@ func New() *Server {
 			Addr:    ":8080",
 			Handler: mux,
 		},
+		version: version,
 	}
 }
 
@@ -58,19 +64,22 @@ func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
-func VersionHandler(w http.ResponseWriter, r *http.Request) {
-	version := "dev" // or however you get your version
+func makeVersionHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		info := ver.GetInfo()
 
-	switch r.Header.Get("Accept") {
-	case "application/json":
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"version":"%s"}`, version)
-	case "application/xml":
-		w.Header().Set("Content-Type", "application/xml")
-		fmt.Fprintf(w, `<VersionInfo><version>%s</version></VersionInfo>`, version)
-	default:
-		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintf(w, "Version: %s", version)
+		switch r.Header.Get("Accept") {
+		case "application/json":
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(info)
+		case "application/xml":
+			w.Header().Set("Content-Type", "application/xml")
+			xml.NewEncoder(w).Encode(info)
+		default:
+			w.Header().Set("Content-Type", "text/plain")
+			fmt.Fprintf(w, "Version: %s\nGitCommit: %s\nBuildTime: %s\nBuildUser: %s\nGoVersion: %s\n",
+				info.Version, info.GitCommit, info.BuildTime, info.BuildUser, info.GoVersion)
+		}
 	}
 }
 
